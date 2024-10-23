@@ -1,134 +1,84 @@
-import { App, Editor, MarkdownView, Modal, Notice, Plugin, PluginSettingTab, Setting } from 'obsidian';
+import { App, Plugin, Notice } from 'obsidian';
+import * as yaml from 'js-yaml';
 
-// Remember to rename these classes and interfaces!
+export default class DatasheetPlugin extends Plugin {
+    async onload() {
+        console.log('Loading Datasheet Plugin');
 
-interface MyPluginSettings {
-	mySetting: string;
-}
+        this.registerMarkdownPostProcessor((element, context) => {
+            const codeBlocks = element.querySelectorAll('pre > code');
+            codeBlocks.forEach((codeBlock) => {
+                if (codeBlock.classList.contains('language-datasheet')) {
+                    const rawYaml = codeBlock.textContent;
 
-const DEFAULT_SETTINGS: MyPluginSettings = {
-	mySetting: 'default'
-}
+                    try {
+                        const parsedData = yaml.load(rawYaml);
+                        if (parsedData) {
+                            const renderDiv = document.createElement('div');
+                            renderDiv.className = 'datasheet-container';
+                            renderDiv.appendChild(this.createTreeTable(parsedData));
 
-export default class MyPlugin extends Plugin {
-	settings: MyPluginSettings;
+                            codeBlock.parentElement?.replaceWith(renderDiv);
+                        }
+                    } catch (err) {
+                        console.error('Error parsing YAML:', err);
+                    }
+                }
+            });
+        });
+    }
 
-	async onload() {
-		await this.loadSettings();
+    onunload() {
+        console.log('Unloading Datasheet Plugin');
+    }
 
-		// This creates an icon in the left ribbon.
-		const ribbonIconEl = this.addRibbonIcon('dice', 'Sample Plugin', (evt: MouseEvent) => {
-			// Called when the user clicks the icon.
-			new Notice('This is a notice!');
-		});
-		// Perform additional things with the ribbon
-		ribbonIconEl.addClass('my-plugin-ribbon-class');
+    private createTreeTable(data: any): HTMLElement {
+        const table = document.createElement('table');
+        table.className = 'datasheet-table';
 
-		// This adds a status bar item to the bottom of the app. Does not work on mobile apps.
-		const statusBarItemEl = this.addStatusBarItem();
-		statusBarItemEl.setText('Status Bar Text');
+        this.addRows(table, data, 0);
+        return table;
+    }
 
-		// This adds a simple command that can be triggered anywhere
-		this.addCommand({
-			id: 'open-sample-modal-simple',
-			name: 'Open sample modal (simple)',
-			callback: () => {
-				new SampleModal(this.app).open();
-			}
-		});
-		// This adds an editor command that can perform some operation on the current editor instance
-		this.addCommand({
-			id: 'sample-editor-command',
-			name: 'Sample editor command',
-			editorCallback: (editor: Editor, view: MarkdownView) => {
-				console.log(editor.getSelection());
-				editor.replaceSelection('Sample Editor Command');
-			}
-		});
-		// This adds a complex command that can check whether the current state of the app allows execution of the command
-		this.addCommand({
-			id: 'open-sample-modal-complex',
-			name: 'Open sample modal (complex)',
-			checkCallback: (checking: boolean) => {
-				// Conditions to check
-				const markdownView = this.app.workspace.getActiveViewOfType(MarkdownView);
-				if (markdownView) {
-					// If checking is true, we're simply "checking" if the command can be run.
-					// If checking is false, then we want to actually perform the operation.
-					if (!checking) {
-						new SampleModal(this.app).open();
-					}
+    private addRows(table: HTMLTableElement, data: any, level: number) {
+        for (const key in data) {
+            if (data.hasOwnProperty(key)) {
+                const value = data[key];
+                const row = table.insertRow();
+                row.className = 'datasheet-row';
 
-					// This command will only show up in Command Palette when the check function returns true
-					return true;
-				}
-			}
-		});
+                const cell = row.insertCell();
+                cell.className = 'datasheet-key';
+                cell.textContent = key;
+                if (level > 0) {
+                	cell.setAttribute('style', `padding-left: ${level*2}em !important;`);
+                }
 
-		// This adds a settings tab so the user can configure various aspects of the plugin
-		this.addSettingTab(new SampleSettingTab(this.app, this));
+                if (typeof value === 'object' && value !== null) {
+                	cell.setAttribute('colspan', '2');
+                    this.addRows(table, value, level + 1);
+                } else {
+                    const valueCell = row.insertCell();
+                    valueCell.className = 'datasheet-value';
+                    const valueString = String(value);
+                    const htmlContent = valueString.replace(/\n/g, '<br>');
+                    valueCell.innerHTML = htmlContent;
 
-		// If the plugin hooks up any global DOM events (on parts of the app that doesn't belong to this plugin)
-		// Using this function will automatically remove the event listener when this plugin is disabled.
-		this.registerDomEvent(document, 'click', (evt: MouseEvent) => {
-			console.log('click', evt);
-		});
-
-		// When registering intervals, this function will automatically clear the interval when the plugin is disabled.
-		this.registerInterval(window.setInterval(() => console.log('setInterval'), 5 * 60 * 1000));
-	}
-
-	onunload() {
-
-	}
-
-	async loadSettings() {
-		this.settings = Object.assign({}, DEFAULT_SETTINGS, await this.loadData());
-	}
-
-	async saveSettings() {
-		await this.saveData(this.settings);
-	}
-}
-
-class SampleModal extends Modal {
-	constructor(app: App) {
-		super(app);
-	}
-
-	onOpen() {
-		const {contentEl} = this;
-		contentEl.setText('Woah!');
-	}
-
-	onClose() {
-		const {contentEl} = this;
-		contentEl.empty();
-	}
-}
-
-class SampleSettingTab extends PluginSettingTab {
-	plugin: MyPlugin;
-
-	constructor(app: App, plugin: MyPlugin) {
-		super(app, plugin);
-		this.plugin = plugin;
-	}
-
-	display(): void {
-		const {containerEl} = this;
-
-		containerEl.empty();
-
-		new Setting(containerEl)
-			.setName('Setting #1')
-			.setDesc('It\'s a secret')
-			.addText(text => text
-				.setPlaceholder('Enter your secret')
-				.setValue(this.plugin.settings.mySetting)
-				.onChange(async (value) => {
-					this.plugin.settings.mySetting = value;
-					await this.plugin.saveSettings();
-				}));
-	}
+                    // Add event listener to copy value on click
+                    valueCell.addEventListener('click', () => {
+                        navigator.clipboard.writeText(valueString)
+                            .then(() => {
+                                // Show Obsidian notification
+                                new Notice('Copied value!');
+                            })
+                            .catch((err) => {
+                                console.error('Failed to copy text:', err);
+                                // Show an error notification
+                                new Notice('Failed to copy text', 3000); // The second argument sets the duration (in ms)
+                            });
+                    });
+                }
+            }
+        }
+    }
 }

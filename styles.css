@@ -7,6 +7,21 @@ If your plugin does not need CSS, delete this file.
 
 */
 
+.datasheet-container {
+	border-color: var(--table-border-color);
+	border-width: var(--table-border-width);
+	border-style: solid;
+	border-radius: 11px;
+	width: var(--table-width);
+	padding: 0;
+	overflow: hidden;
+	display: inline-block;
+}
+
+.datasheet-table {
+	margin: 0 !important;
+}
+
 .datasheet-value {
     font-family: var(--font-monospace); 
 }
@@ -15,28 +30,10 @@ If your plugin does not need CSS, delete this file.
 	color: var(--text-muted) !important;
 	font-size: var(--font-smaller) !important;
     font-weight: var(--table-header-weight) !important;
-    text-align: right !important;
 }
 
 .datasheet-table td, .datasheet-table th {
 	padding: 8pt !important;
-	border: none !important;
+	border: none;
 }
 
-.copy-tooltip {
-    position: absolute;
-    background: #000;
-    color: #fff;
-    padding: 3px 8px;
-    border-radius: 4px;
-    font-size: 12px;
-    top: -25px;
-    right: 0;
-    opacity: 0;
-    transition: opacity 0.3s;
-    pointer-events: none;
-}
-
-.datasheet-value:hover .copy-tooltip {
-    opacity: 1;
-}
