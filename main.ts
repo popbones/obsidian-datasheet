@@ -1,5 +1,5 @@
 import { App, Plugin, Notice } from 'obsidian';
-import * as yaml from 'js-yaml';
+import * as yaml from 'yaml';
 
 export default class DatasheetPlugin extends Plugin {
     async onload() {
@@ -12,7 +12,7 @@ export default class DatasheetPlugin extends Plugin {
                     const rawYaml = codeBlock.textContent;
 
                     try {
-                        const parsedData = yaml.load(rawYaml);
+                        const parsedData = yaml.parse(rawYaml || "");
                         if (parsedData) {
                             const renderDiv = document.createElement('div');
                             renderDiv.className = 'datasheet-container';
@@ -50,6 +50,9 @@ export default class DatasheetPlugin extends Plugin {
                 const cell = row.insertCell();
                 cell.className = 'datasheet-key';
                 cell.textContent = key;
+                if (Array.isArray(data)) {
+					cell.textContent = '';
+				}
                 if (level > 0) {
                 	cell.setAttribute('style', `padding-left: ${level*2}em !important;`);
                 }
