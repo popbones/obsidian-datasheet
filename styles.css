@@ -29,7 +29,7 @@ If your plugin does not need CSS, delete this file.
 .datasheet-key {
 	color: var(--text-muted) !important;
 	font-size: var(--font-smaller) !important;
-    font-weight: var(--table-header-weight) !important;
+	font-weight: var(--table-header-weight) !important;
 }
 
 .datasheet-table td, .datasheet-table th {
